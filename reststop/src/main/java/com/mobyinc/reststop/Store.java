@@ -2,6 +2,8 @@ package com.mobyinc.reststop;
 
 import android.content.Context;
 
+import java.util.Collection;
+
 import io.reactivex.Single;
 
 public class Store {
@@ -22,7 +24,6 @@ public class Store {
     public Single<Boolean> startSession(String username, String password, String clientId, String clientSecret) {
         return adapter.authenticate(username, password, clientId, clientSecret).map(
                 result -> {
-
                     return true;
                 }
         );

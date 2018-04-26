@@ -20,6 +20,9 @@ import java.util.Collection;
 import io.reactivex.Single;
 
 public class DefaultRestAdapter implements RestAdaptable {
+    final String requestTag = "restStop";
+    private boolean disposed = false;
+
     private String baseUrl;
     private RequestQueue queue;
 
@@ -39,9 +42,10 @@ public class DefaultRestAdapter implements RestAdaptable {
             JsonObjectRequest request = new JsonObjectRequest(
                     baseUrl,
                     jsonObject,
-                    response -> emitter.onSuccess(response),
+                    emitter::onSuccess,
                     error -> emitter.onError(new Exception("error"))
             );
+            request.setTag(requestTag);
             queue.add(request);
         });
     }
@@ -63,16 +67,22 @@ public class DefaultRestAdapter implements RestAdaptable {
                     },
                     response -> emitter.onError(new Exception("Could not get object"))
             );
+            request.setTag(requestTag);
             queue.add(request);
         });
     }
 
+    public <T> Single<Collection<T>> getList(String resourceName, Type type) {
+        return getList(resourceName, "", type);
+    }
+
     @Override
     public <T> Single<Collection<T>> getList(String resourceName, String id, Type type) {
+        String query = baseUrl + resourceName + "/" + id;
         return Single.create(emitter -> {
             StringRequest request = new StringRequest(
                     Request.Method.GET,
-                    baseUrl + resourceName + "/" + id,
+                    query,
                     response -> {
                         JsonElement jsonElement = new JsonParser().parse(response);
 
@@ -80,7 +90,19 @@ public class DefaultRestAdapter implements RestAdaptable {
                     },
                     response -> emitter.onError(new Exception("Could not get object"))
             );
+            request.setTag(requestTag);
             queue.add(request);
         });
+    }
+
+    @Override
+    public void dispose() {
+        queue.cancelAll(requestTag);
+        disposed = true;
+    }
+
+    @Override
+    public boolean isDisposed() {
+        return disposed;
     }
 }
